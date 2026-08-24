@@ -13,7 +13,7 @@ from django.db.models import Count, Q
 import pandas as pd
 
 from .models import Department, Course, Student, AttendanceSession, AttendanceRecord
-from .face_utils import extract_face_encoding, process_classroom_attendance
+from .face_utils import extract_face_encoding, process_classroom_attendance, compare_face_encodings
 
 
 def mark_attendance_view(request):
@@ -250,7 +250,7 @@ def register_student_view(request):
         for ex in all_registered_students:
             ex_enc = ex.get_face_encoding_list()
             if ex_enc is not None:
-                matches = face_recognition.compare_faces([np.array(ex_enc)], np.array(encoding), tolerance=0.48)
+                matches = compare_face_encodings([np.array(ex_enc)], np.array(encoding), tolerance=0.48)
                 if matches and matches[0]:
                     messages.error(request, f'🔒 Biometric Duplicate Blocked: Your face is ALREADY REGISTERED in the system as student "{ex.name}" (Roll No: {ex.roll_no}). Re-registration is strictly locked.')
                     return redirect('register_student')
