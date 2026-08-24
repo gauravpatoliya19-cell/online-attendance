@@ -3,16 +3,15 @@ import sys
 import shutil
 from pathlib import Path
 
-# Add root directory to sys.path
-CURRENT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = CURRENT_DIR.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+# Add project root directory to sys.path
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_project.settings')
 
-# Ensure /tmp writable database exists
-src_db = ROOT_DIR / 'db.sqlite3'
+# Copy database to writable /tmp on Vercel
+src_db = BASE_DIR / 'db.sqlite3'
 dst_db = Path('/tmp/db.sqlite3')
 if src_db.exists() and not dst_db.exists():
     try:
@@ -28,7 +27,7 @@ except Exception:
 import django
 django.setup()
 
-# If db is not yet migrated, run migrate
+# Auto-migrate if needed
 try:
     if not dst_db.exists() or dst_db.stat().st_size == 0:
         from django.core.management import call_command
@@ -39,4 +38,3 @@ except Exception:
 from django.core.wsgi import get_wsgi_application
 
 app = get_wsgi_application()
-handler = app
