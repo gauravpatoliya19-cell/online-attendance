@@ -11,7 +11,7 @@ if str(ROOT_DIR) not in sys.path:
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_project.settings')
 
-# Copy database to writable /tmp on Vercel invocation
+# Ensure /tmp writable database exists
 src_db = ROOT_DIR / 'db.sqlite3'
 dst_db = Path('/tmp/db.sqlite3')
 if src_db.exists() and not dst_db.exists():
@@ -20,25 +20,23 @@ if src_db.exists() and not dst_db.exists():
     except Exception:
         pass
 
-# Ensure media directory exists in /tmp
 try:
     os.makedirs('/tmp/media', exist_ok=True)
 except Exception:
     pass
 
+import django
+django.setup()
+
+# If db is not yet migrated, run migrate
+try:
+    if not dst_db.exists() or dst_db.stat().st_size == 0:
+        from django.core.management import call_command
+        call_command('migrate', interactive=False)
+except Exception:
+    pass
+
 from django.core.wsgi import get_wsgi_application
 
-django_app = get_wsgi_application()
-
-
-def app(environ, start_response):
-    """WSGI Handler with detailed error capture for Vercel Serverless."""
-    try:
-        return django_app(environ, start_response)
-    except Exception as exc:
-        import traceback
-        error_msg = traceback.format_exc()
-        status = '500 Internal Server Error'
-        response_headers = [('Content-type', 'text/plain; charset=utf-8')]
-        start_response(status, response_headers)
-        return [f"Serverless Runtime Error:\n\n{error_msg}".encode('utf-8')]
+app = get_wsgi_application()
+handler = app
