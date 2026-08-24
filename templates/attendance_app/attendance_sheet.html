@@ -1,0 +1,262 @@
+{% extends 'attendance_app/base.html' %}
+
+{% block title %}Master Attendance Sheet (Roll-wise) - Face AI Attendance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg shadow-inner">
+                    <i class="fa-solid fa-table-list"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">Master Attendance Sheet</h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Roll Number-wise Ascending Attendance Register for all courses and divisions.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{% url 'export_master_attendance_excel' %}?course={{ selected_course }}&semester={{ selected_sem }}&division={{ selected_div }}" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i> Export Excel (.xlsx)
+            </a>
+            <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> Print Sheet
+            </button>
+        </div>
+    </div>
+
+    <!-- Analytics & Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Students -->
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Enrolled</p>
+                <h3 class="text-xl font-extrabold text-slate-800">{{ total_students_count }} <span class="text-xs font-normal text-slate-400">Students</span></h3>
+            </div>
+        </div>
+
+        <!-- Class Avg Attendance -->
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-chart-simple"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Class Average</p>
+                <h3 class="text-xl font-extrabold text-indigo-600 font-mono">{{ avg_attendance }}%</h3>
+            </div>
+        </div>
+
+        <!-- Eligible Students -->
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Eligible (≥ 75%)</p>
+                <h3 class="text-xl font-extrabold text-emerald-600 font-mono">{{ eligible_count }} <span class="text-xs font-normal text-slate-400">Students</span></h3>
+            </div>
+        </div>
+
+        <!-- Defaulters -->
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Defaulters (< 75%)</p>
+                <h3 class="text-xl font-extrabold text-rose-600 font-mono">{{ defaulter_count }} <span class="text-xs font-normal text-slate-400">Students</span></h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Search Student</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="Roll No, Name, or Email..." class="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Course -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Course</label>
+                <select name="course" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.degree }} ({{ c.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Semester -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Semester</label>
+                <select name="semester" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Semesters</option>
+                    {% for sem in semesters %}
+                    <option value="{{ sem }}" {% if selected_sem == sem %}selected{% endif %}>{{ sem }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Sort Order & Submit -->
+            <div class="flex items-end gap-2">
+                <div class="flex-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Roll Order</label>
+                    <select name="sort" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-2 text-xs text-slate-700 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending (01 ➔ 99)</option>
+                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending (99 ➔ 01)</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                    Filter
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Master Roll-wise Attendance Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+        
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Ascending Roll-Wise Student Register</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold text-[11px] font-mono">{{ attendance_data|length }} Students</span>
+            </div>
+            <span class="text-[11px] text-slate-400">Sorted strictly by Roll Number (ASC)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-4 text-center w-12">#</th>
+                        <th class="py-3.5 px-4">Roll Number</th>
+                        <th class="py-3.5 px-4">Student Profile</th>
+                        <th class="py-3.5 px-4">Course & Dept</th>
+                        <th class="py-3.5 px-4">Class</th>
+                        <th class="py-3.5 px-4 text-center">Total</th>
+                        <th class="py-3.5 px-4 text-center text-emerald-600">Present</th>
+                        <th class="py-3.5 px-4 text-center text-rose-600">Absent</th>
+                        <th class="py-3.5 px-4">Attendance %</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for item in attendance_data %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <!-- S.No -->
+                        <td class="py-3.5 px-4 text-center font-mono text-slate-400 font-medium">
+                            {{ forloop.counter }}
+                        </td>
+
+                        <!-- Roll Number (Bold Badge) -->
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-mono font-bold border border-blue-200 shadow-2xs">
+                                {{ item.student.roll_no }}
+                            </span>
+                        </td>
+
+                        <!-- Profile Photo + Name -->
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 shadow-2xs">
+                                    {% if item.student.photo %}
+                                    <img src="{{ item.student.photo.url }}" alt="{{ item.student.name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <div class="w-full h-full flex items-center justify-center text-slate-400 font-bold">
+                                        {{ item.student.name|slice:":1" }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-800 block text-xs">{{ item.student.name }}</span>
+                                    <span class="text-[11px] text-slate-400 font-mono">{{ item.student.email|default:"No email registered" }}</span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Course & Department -->
+                        <td class="py-3.5 px-4">
+                            <span class="font-semibold text-slate-700 block">{{ item.student.course.degree|default:"General" }}</span>
+                            <span class="text-[11px] text-slate-400">{{ item.student.department.name|default:"--" }}</span>
+                        </td>
+
+                        <!-- Semester & Division -->
+                        <td class="py-3.5 px-4">
+                            <span class="text-slate-600 block font-medium">{{ item.student.semester }}</span>
+                            <span class="text-[11px] text-slate-400">Div: {{ item.student.division }}</span>
+                        </td>
+
+                        <!-- Total Classes -->
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-slate-700">
+                            {{ item.total_classes }}
+                        </td>
+
+                        <!-- Present -->
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-emerald-600">
+                            {{ item.present_count }}
+                        </td>
+
+                        <!-- Absent -->
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-rose-600">
+                            {{ item.absent_count }}
+                        </td>
+
+                        <!-- Percentage & Progress Bar -->
+                        <td class="py-3.5 px-4 min-w-[140px]">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[11px] font-mono">
+                                    <span class="font-bold {% if item.percentage >= 75 %}text-emerald-600{% elif item.percentage >= 50 %}text-amber-600{% else %}text-rose-600{% endif %}">
+                                        {{ item.percentage }}%
+                                    </span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                    <div class="h-full rounded-full {% if item.percentage >= 75 %}bg-emerald-500{% elif item.percentage >= 50 %}bg-amber-500{% else %}bg-rose-500{% endif %}" style="width: {{ item.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="py-3.5 px-4 text-center">
+                            {% if item.is_eligible %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                                <i class="fa-solid fa-check"></i> Eligible
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Defaulter
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="py-12 text-center text-slate-400 text-xs">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 text-xl mb-2">
+                                <i class="fa-solid fa-user-slash"></i>
+                            </div>
+                            No student records found matching your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

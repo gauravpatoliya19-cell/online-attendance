@@ -1,0 +1,140 @@
+{% extends 'attendance_app/base.html' %}
+
+{% block title %}Admin & Faculty Attendance Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-amber-500"></i> Faculty & Admin Dashboard
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Overview of daily attendance sessions, statistics, and exported logs.</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'mark_attendance' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-camera"></i> Mark New Attendance
+            </a>
+            <a href="/admin/" target="_blank" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-gear"></i> Admin Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <!-- Total Active Students -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="space-y-1">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Students</span>
+                <h3 class="text-3xl font-extrabold text-slate-800">{{ total_students }}</h3>
+                <span class="text-[11px] text-emerald-600 font-semibold"><i class="fa-solid fa-user-check mr-1"></i> Face Encoded</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-users"></i>
+            </div>
+        </div>
+
+        <!-- Total Sessions -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="space-y-1">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Class Sessions</span>
+                <h3 class="text-3xl font-extrabold text-slate-800">{{ total_sessions }}</h3>
+                <span class="text-[11px] text-slate-500 font-medium">Recorded in Database</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+        </div>
+
+        <!-- Today Marked Attendances -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div class="space-y-1">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Present Count</span>
+                <h3 class="text-3xl font-extrabold text-emerald-600">{{ today_marked_count }}</h3>
+                <span class="text-[11px] text-slate-500 font-medium">Students Verified Today</span>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-clipboard-user"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Sessions Log Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
+        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <h2 class="font-bold text-slate-800 text-sm">Recent Attendance Sessions</h2>
+                <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">{{ sessions|length }} Sessions</span>
+            </div>
+
+            <!-- Date Filter -->
+            <form method="GET" class="flex items-center gap-2">
+                <input type="date" name="date" value="{{ date_filter }}" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Filter</button>
+                {% if date_filter %}
+                <a href="{% url 'dashboard' %}" class="text-xs text-rose-600 hover:underline">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                        <th class="px-5 py-3.5">Session ID</th>
+                        <th class="px-5 py-3.5">Date & Time</th>
+                        <th class="px-5 py-3.5">Course / Degree</th>
+                        <th class="px-5 py-3.5">Semester & Div</th>
+                        <th class="px-5 py-3.5">Subject</th>
+                        <th class="px-5 py-3.5">Detected / Matched</th>
+                        <th class="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in sessions %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-5 py-3.5 font-mono font-bold text-slate-900">#{{ s.id }}</td>
+                        <td class="px-5 py-3.5 font-medium text-slate-800">
+                            {{ s.date|date:"d M Y" }} <span class="text-slate-400 font-mono text-[11px] block">{{ s.time|time:"h:i A" }}</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-semibold text-slate-900">{{ s.degree_name }}</span> - {{ s.course_name }}
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-semibold font-mono">{{ s.semester }} - Div {{ s.division }}</span>
+                        </td>
+                        <td class="px-5 py-3.5 font-medium text-slate-700">{{ s.subject }}</td>
+                        <td class="px-5 py-3.5">
+                            <div class="flex items-center gap-1.5 font-semibold">
+                                <span class="text-emerald-700 font-bold">{{ s.total_matched_students }} Present</span>
+                                <span class="text-slate-400">/</span>
+                                <span class="text-slate-500">{{ s.total_detected_faces }} Faces</span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-3.5 text-right space-x-2">
+                            <a href="{% url 'session_detail' s.id %}" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-semibold transition">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a href="{% url 'export_attendance_excel' s.id %}" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-semibold transition" title="Export Excel Sheet">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-5 py-10 text-center text-slate-400">
+                            No attendance sessions recorded yet. <a href="{% url 'mark_attendance' %}" class="text-blue-600 font-semibold underline">Mark first attendance</a>.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

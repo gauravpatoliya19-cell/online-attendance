@@ -1,0 +1,75 @@
+{% extends 'attendance_app/base.html' %}
+
+{% block title %}Registration Successful - Smart AI Attendance{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-6">
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 text-center space-y-6">
+        
+        <!-- Animated Success Badge -->
+        <div class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-4xl shadow-inner animate-bounce">
+            <i class="fa-solid fa-check"></i>
+        </div>
+
+        <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <i class="fa-solid fa-shield-check mr-1"></i> One-Time Registration Complete
+            </span>
+            <h1 class="text-2xl font-black text-slate-800 mt-3">Enrollment Successful!</h1>
+            <p class="text-xs text-slate-500 mt-1">Your facial profile has been permanently enrolled for AI Attendance. You do not need to register again.</p>
+        </div>
+
+        <!-- Student ID Card Summary -->
+        <div class="bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-blue-100 p-5 text-left space-y-4 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-blue-500 shadow-md bg-slate-200 flex-shrink-0">
+                    {% if registered_student.photo %}
+                    <img src="{{ registered_student.photo.url }}" alt="{{ registered_student.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-slate-400">
+                        <i class="fa-solid fa-user text-2xl"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="space-y-0.5 overflow-hidden">
+                    <span class="inline-block px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-md font-mono">
+                        Roll: {{ registered_student.roll_no }}
+                    </span>
+                    <h2 class="text-base font-bold text-slate-800 truncate">{{ registered_student.name }}</h2>
+                    <p class="text-xs text-slate-500 truncate">{{ registered_student.email|default:"Enrolled Student" }}</p>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-blue-100 text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Faculty / Dept:</span>
+                    <span class="font-bold text-slate-700">{{ registered_student.department.code|default:"FoS" }} - {{ registered_student.department.name|default:"Science" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Course & Sem:</span>
+                    <span class="font-bold text-slate-700">{{ registered_student.course.degree|default:"MCA" }} ({{ registered_student.semester }} Div {{ registered_student.division }})</span>
+                </div>
+                <div class="flex justify-between items-center pt-1 border-t border-blue-100/60">
+                    <span class="text-slate-400">AI Face Engine Status:</span>
+                    <span class="font-bold text-emerald-600 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check"></i> Active & Verified
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Note -->
+        <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-emerald-600 text-base"></i>
+            <span>Your face is ready. Whenever faculty takes a classroom photo, your attendance will be marked automatically.</span>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Persist registration on this device
+    localStorage.setItem('registered_student_roll', '{{ registered_student.roll_no }}');
+    localStorage.setItem('registered_student_name', '{{ registered_student.name }}');
+</script>
+{% endblock %}

@@ -1,0 +1,516 @@
+{% extends 'attendance_app/base.html' %}
+
+{% block title %}Register Student - Face AI Attendance{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+
+    <!-- Already Registered Card (Server-side & Client-side Lock) -->
+    <div id="alreadyRegisteredCard" class="{% if not existing_cookie_student %}hidden{% endif %} bg-white rounded-2xl shadow-sm border border-emerald-200 p-8 text-center space-y-5">
+        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <i class="fa-solid fa-lock mr-1"></i> One-Time Registration Complete
+            </span>
+            <h2 class="text-xl font-bold text-slate-800 mt-2">You Are Already Registered!</h2>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                Your Face Profile has already been enrolled into the AI Attendance Engine.
+            </p>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 max-w-sm mx-auto text-left text-xs space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-slate-500">Student Name:</span>
+                <span id="registeredNameDisplay" class="font-bold text-slate-800">{{ existing_cookie_student.name|default:"--" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">Roll Number:</span>
+                <span id="registeredRollDisplay" class="font-bold text-blue-600 font-mono">{{ existing_cookie_student.roll_no|default:"--" }}</span>
+            </div>
+            <div class="flex justify-between items-center pt-1 border-t border-slate-200">
+                <span class="text-slate-500">AI Face Status:</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i> Enrolled & Active
+                </span>
+            </div>
+        </div>
+
+        <div class="pt-2 space-y-1">
+            <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200">
+                <i class="fa-solid fa-shield-halved text-slate-500"></i> Registration is permanently locked for this device
+            </div>
+            <p class="text-[11px] text-slate-400">If you need to re-take your photo or update details, please contact your faculty.</p>
+        </div>
+    </div>
+
+    <!-- Registration Box -->
+    <div id="registrationCard" class="{% if existing_cookie_student %}hidden{% endif %} bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-blue-600"></i> Student Enrollment Form
+                </h1>
+                <p class="text-xs text-slate-500 mt-0.5">Enter your academic details and take a live selfie / upload photo to enroll your Face Profile (One-time registration).</p>
+            </div>
+            <span class="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1 rounded-full border border-emerald-200">
+                <i class="fa-solid fa-shield-halved mr-1"></i> One-Time Enrollment
+            </span>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" id="registerForm" class="p-6 space-y-6">
+            {% csrf_token %}
+
+            <!-- Input for base64 captured data from camera -->
+            <input type="hidden" name="captured_image_data" id="capturedImageData">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <!-- Roll Number -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Roll Number <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-id-badge text-sm"></i>
+                        </span>
+                        <input type="text" name="roll_no" required placeholder="e.g. 03, 15, MCA202401" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Full Name -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Full Name <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-user text-sm"></i>
+                        </span>
+                        <input type="text" name="name" required placeholder="e.g. Raghavria Pavan H." class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email Address</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-envelope text-sm"></i>
+                        </span>
+                        <input type="email" name="email" placeholder="student@university.edu.in" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Phone Number</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-phone text-sm"></i>
+                        </span>
+                        <input type="text" name="phone" placeholder="+91 9876543210" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                    </div>
+                </div>
+
+            <!-- Academic Details (User Editable Inputs with Comprehensive Suggestions Datalists) -->
+            <div class="col-span-1 md:col-span-2 pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Academic Enrollment Details</h3>
+                    <span class="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <i class="fa-solid fa-keyboard mr-1"></i> User Input + Autocomplete Suggestions
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    <!-- Faculty (1) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">1. Faculty</label>
+                        <input list="facultiesList" id="regFacultyInput" name="faculty" placeholder="e.g. FoS" value="FoS" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                        <datalist id="facultiesList">
+                            {% for dept in departments %}
+                            <option value="{{ dept.code }}">{{ dept.name }}</option>
+                            {% empty %}
+                            <option value="FoS">Faculty of Science</option>
+                            <option value="FoET">Faculty of Engineering & Tech</option>
+                            <option value="FoM">Faculty of Management</option>
+                            <option value="FoP">Faculty of Pharmacy</option>
+                            <option value="FoA">Faculty of Arts</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <!-- Department (2) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">2. Department</label>
+                        <input list="departmentsList" id="regDeptInput" name="department" placeholder="e.g. Computer Science" value="Computer Science" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                        <datalist id="departmentsList">
+                            <option value="Computer Science">
+                            <option value="Information Technology">
+                            <option value="Artificial Intelligence & ML">
+                            <option value="Mechanical Engineering">
+                            <option value="Civil Engineering">
+                            <option value="Electrical Engineering">
+                            <option value="Biotechnology">
+                            <option value="Microbiology">
+                            <option value="Chemistry">
+                            <option value="Business Administration">
+                            <option value="Commerce">
+                            <option value="Pharmacy">
+                            <option value="Humanities & English">
+                        </datalist>
+                    </div>
+
+                    <!-- Course / Degree (3) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">3. Course</label>
+                        <input list="coursesList" id="regCourseInput" name="course" placeholder="e.g. MCA, BCA" value="MCA" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                        <datalist id="coursesList">
+                            {% for c in courses %}
+                            <option value="{{ c.degree|default:c.name }}">{{ c.name }}</option>
+                            {% empty %}
+                            <option value="MCA">Master of Computer Applications</option>
+                            <option value="BCA">Bachelor of Computer Applications</option>
+                            <option value="B.Tech CE">Computer Engineering</option>
+                            <option value="B.Tech AI & ML">AI & Machine Learning</option>
+                            <option value="BBA">Bachelor of Business Administration</option>
+                            <option value="MBA">Master of Business Administration</option>
+                            <option value="B.Pharm">Bachelor of Pharmacy</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <!-- Semester (4) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">4. Semester</label>
+                        <input list="semestersList" name="semester" placeholder="e.g. Semester 3" value="Semester 3" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                        <datalist id="semestersList">
+                            {% for sem in semesters %}
+                            <option value="{{ sem }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <!-- Division (5) -->
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">5. Division</label>
+                        <input list="divisionsList" name="division" placeholder="e.g. 22" value="22" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                        <datalist id="divisionsList">
+                            {% for div in divisions %}
+                            <option value="{{ div }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Face Photo Capture / Upload Section -->
+            <div class="border-t border-slate-100 pt-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Student Face Photo <span class="text-rose-500">*</span>
+                        </label>
+                        <p class="text-xs text-slate-500">Provide a clear frontal photo for AI face matching.</p>
+                    </div>
+
+                    <!-- Toggle Mode -->
+                    <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                        <button type="button" id="tabUploadBtn" class="px-3 py-1.5 rounded-lg bg-white shadow-xs text-blue-700">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload File
+                        </button>
+                        <button type="button" id="tabCameraBtn" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-camera mr-1"></i> Live Camera
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mode A: File Upload -->
+                <div id="uploadContainer" class="p-6 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl text-center bg-slate-50 transition">
+                    <input type="file" name="photo" id="photoInput" accept="image/*" class="hidden">
+                    <label for="photoInput" class="cursor-pointer block space-y-2">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-700">Click to browse student photo</p>
+                        <p class="text-xs text-slate-400 font-mono" id="uploadFileName">PNG, JPG, JPEG up to 10MB</p>
+                    </label>
+                </div>
+
+                <!-- Mode B: Live Webcam / Phone Camera -->
+                <div id="cameraContainer" class="hidden space-y-3 p-4 bg-slate-900 rounded-2xl text-center">
+                    <div class="relative w-full max-w-sm mx-auto aspect-square bg-black rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+                        <video id="liveVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="liveCanvas" class="hidden"></canvas>
+                    </div>
+                    <div class="flex items-center justify-center gap-3">
+                        <button type="button" id="switchRegCamBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3.5 py-2 rounded-lg border border-slate-700">
+                            <i class="fa-solid fa-arrows-rotate mr-1"></i> Flip Camera
+                        </button>
+                        <button type="button" id="captureRegBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-camera"></i> Click Snapshot
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Preview of selected/captured photo -->
+                <div id="imagePreviewBox" class="hidden flex items-center gap-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <img id="selectedPhotoPreview" src="" alt="Face Preview" class="w-16 h-16 rounded-xl object-cover border-2 border-emerald-500 shadow-xs">
+                    <div class="flex-1">
+                        <span class="text-xs font-bold text-emerald-800 block">✔ Photo Selected</span>
+                        <span class="text-[11px] text-emerald-600" id="photoStatusText">Face ready for AI encoding</span>
+                    </div>
+                    <button type="button" id="clearPhotoBtn" class="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1">
+                        Change
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end">
+                <button type="submit" id="submitBtn" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Submit & Enroll Face Profile
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 1. One-Time Registration Check (Local Device Check)
+    const alreadyRegisteredCard = document.getElementById('alreadyRegisteredCard');
+    const registrationCard = document.getElementById('registrationCard');
+    const registeredNameDisplay = document.getElementById('registeredNameDisplay');
+    const registeredRollDisplay = document.getElementById('registeredRollDisplay');
+
+    const savedRoll = localStorage.getItem('registered_student_roll');
+    const savedName = localStorage.getItem('registered_student_name');
+
+    if (savedRoll && savedName && alreadyRegisteredCard && registrationCard) {
+        registeredRollDisplay.innerText = savedRoll;
+        registeredNameDisplay.innerText = savedName;
+        alreadyRegisteredCard.classList.remove('hidden');
+        registrationCard.classList.add('hidden');
+    }
+
+    // 2. Real-Time Server-Side Roll Duplicate Verification (Works on ANY browser / Incognito / Phone)
+    const rollNoInput = document.querySelector('input[name="roll_no"]');
+    const submitBtn = document.getElementById('submitBtn');
+    let rollCheckTimeout = null;
+
+    if (rollNoInput) {
+        const warningDiv = document.createElement('div');
+        warningDiv.id = 'rollWarningBox';
+        warningDiv.className = 'hidden mt-1.5 p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2';
+        rollNoInput.parentElement.parentElement.appendChild(warningDiv);
+
+        rollNoInput.addEventListener('input', () => {
+            clearTimeout(rollCheckTimeout);
+            const val = rollNoInput.value.trim();
+            if (!val) {
+                warningDiv.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.className = "w-full sm:w-auto px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2";
+                return;
+            }
+
+            rollCheckTimeout = setTimeout(() => {
+                fetch(`/api/check-student-status/?roll_no=${encodeURIComponent(val)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.is_registered) {
+                            warningDiv.innerHTML = `<i class="fa-solid fa-lock text-rose-600"></i> <span>Roll No <strong>"${data.roll_no}"</strong> is ALREADY REGISTERED as <strong>${data.name}</strong> (${data.course}). Re-registration is locked.</span>`;
+                            warningDiv.classList.remove('hidden');
+                            submitBtn.disabled = true;
+                            submitBtn.className = "w-full sm:w-auto px-8 py-3 rounded-xl bg-rose-500 text-white text-xs font-bold opacity-60 cursor-not-allowed flex items-center justify-center gap-2";
+                        } else {
+                            warningDiv.classList.add('hidden');
+                            submitBtn.disabled = false;
+                            submitBtn.className = "w-full sm:w-auto px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2";
+                        }
+                    })
+                    .catch(err => console.error(err));
+            }, 250);
+        });
+    }
+
+    const tabUploadBtn = document.getElementById('tabUploadBtn');
+    const tabCameraBtn = document.getElementById('tabCameraBtn');
+    const uploadContainer = document.getElementById('uploadContainer');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const photoInput = document.getElementById('photoInput');
+    const uploadFileName = document.getElementById('uploadFileName');
+    const imagePreviewBox = document.getElementById('imagePreviewBox');
+    const selectedPhotoPreview = document.getElementById('selectedPhotoPreview');
+    const clearPhotoBtn = document.getElementById('clearPhotoBtn');
+    const capturedImageData = document.getElementById('capturedImageData');
+
+    const liveVideo = document.getElementById('liveVideo');
+    const liveCanvas = document.getElementById('liveCanvas');
+    const captureRegBtn = document.getElementById('captureRegBtn');
+    const switchRegCamBtn = document.getElementById('switchRegCamBtn');
+
+    let stream = null;
+    let currentFacingMode = 'user';
+
+    // Faculties and Courses Dynamic Hierarchy
+    const regFacultiesData = JSON.parse('{{ faculties_json|escapejs }}');
+    const regSelectFaculty = document.getElementById('regSelectFaculty');
+    const regSelectDept = document.getElementById('regSelectDept');
+    const regSelectCourse = document.getElementById('regSelectCourse');
+    const regDepartmentId = document.getElementById('regDepartmentId');
+
+    function populateRegDynamicDropdowns() {
+        const selectedFacCode = regSelectFaculty.value;
+        const currentFaculty = regFacultiesData.find(f => f.code === selectedFacCode) || regFacultiesData[0];
+
+        if (regDepartmentId) {
+            regDepartmentId.value = currentFaculty.id;
+        }
+
+        // 1. Collect unique departments
+        const deptsSet = new Set();
+        currentFaculty.courses.forEach(c => deptsSet.add(c.name));
+        
+        regSelectDept.innerHTML = '';
+        deptsSet.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.innerText = d;
+            regSelectDept.appendChild(opt);
+        });
+
+        // 2. Populate courses
+        populateRegCourses();
+    }
+
+    function populateRegCourses() {
+        const selectedFacCode = regSelectFaculty.value;
+        const selectedDeptName = regSelectDept.value;
+        const currentFaculty = regFacultiesData.find(f => f.code === selectedFacCode) || regFacultiesData[0];
+
+        regSelectCourse.innerHTML = '';
+        const matchingCourses = currentFaculty.courses.filter(c => !selectedDeptName || c.name === selectedDeptName);
+        
+        if (matchingCourses.length > 0) {
+            matchingCourses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.degree} (${c.name})`;
+                regSelectCourse.appendChild(opt);
+            });
+        } else {
+            currentFaculty.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.degree} (${c.name})`;
+                regSelectCourse.appendChild(opt);
+            });
+        }
+    }
+
+    if (regSelectFaculty) {
+        regSelectFaculty.addEventListener('change', populateRegDynamicDropdowns);
+        populateRegDynamicDropdowns();
+    }
+    if (regSelectDept) {
+        regSelectDept.addEventListener('change', populateRegCourses);
+    }
+
+    // Tabs switch
+    tabUploadBtn.addEventListener('click', () => {
+        tabUploadBtn.className = 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-blue-700';
+        tabCameraBtn.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900';
+        uploadContainer.classList.remove('hidden');
+        cameraContainer.classList.add('hidden');
+        stopCamera();
+    });
+
+    tabCameraBtn.addEventListener('click', () => {
+        tabCameraBtn.className = 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-blue-700';
+        tabUploadBtn.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900';
+        cameraContainer.classList.remove('hidden');
+        uploadContainer.classList.add('hidden');
+        startCamera();
+    });
+
+    // File input preview
+    photoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        uploadFileName.innerText = file.name;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            selectedPhotoPreview.src = evt.target.result;
+            imagePreviewBox.classList.remove('hidden');
+            capturedImageData.value = '';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Clear photo
+    clearPhotoBtn.addEventListener('click', () => {
+        photoInput.value = '';
+        uploadFileName.innerText = 'PNG, JPG, JPEG up to 10MB';
+        capturedImageData.value = '';
+        imagePreviewBox.classList.add('hidden');
+        selectedPhotoPreview.src = '';
+    });
+
+    // Camera handling
+    function startCamera() {
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+        }
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: false
+        })
+        .then(s => {
+            stream = s;
+            liveVideo.srcObject = s;
+        })
+        .catch(err => {
+            alert('Camera error: ' + err.message);
+        });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+    }
+
+    switchRegCamBtn.addEventListener('click', () => {
+        currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+        startCamera();
+    });
+
+    captureRegBtn.addEventListener('click', () => {
+        if (!liveVideo.videoWidth) return;
+        liveCanvas.width = liveVideo.videoWidth;
+        liveCanvas.height = liveVideo.videoHeight;
+        const ctx = liveCanvas.getContext('2d');
+        ctx.drawImage(liveVideo, 0, 0, liveCanvas.width, liveCanvas.height);
+
+        const dataUrl = liveCanvas.toDataURL('image/jpeg', 0.9);
+        capturedImageData.value = dataUrl;
+        photoInput.value = ''; // clear file input
+
+        selectedPhotoPreview.src = dataUrl;
+        imagePreviewBox.classList.remove('hidden');
+        stopCamera();
+        tabUploadBtn.click(); // switch back to view
+    });
+</script>
+{% endblock %}

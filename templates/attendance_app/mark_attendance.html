@@ -1,0 +1,601 @@
+{% extends 'attendance_app/base.html' %}
+
+{% block title %}Mark Attendance - Smart AI Face Recognition{% endblock %}
+
+{% block extra_head %}
+<style>
+    .font-mono-header {
+        font-family: 'Courier New', Courier, monospace, ui-monospace;
+    }
+    .face-thumb-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 8px;
+    }
+    .thumb-item {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 2px solid #e2e8f0;
+        transition: transform 0.15s, border-color 0.15s;
+    }
+    .thumb-item:hover {
+        transform: scale(1.08);
+        border-color: #2563eb;
+        z-index: 10;
+    }
+    .thumb-tag {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        background-color: rgba(15, 23, 42, 0.85);
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Card: Mark Attendance Main Box -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2.5 font-mono-header">
+                <span class="text-2xl">📸</span> Mark Attendance
+            </h1>
+            <span class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-semibold border border-blue-200">
+                AI Multi-Face Vision Engine
+            </span>
+        </div>
+
+        <div class="p-6 space-y-6">
+            
+            <!-- Subject / Class & Faculty Single Clean Row -->
+            <div class="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700">Subject / Class:</span>
+                    <input type="text" id="inputSubject" name="subject" placeholder="" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-medium w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700">Faculty:</span>
+                    <input type="text" id="inputFaculty" name="faculty" placeholder="" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-medium w-56 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <!-- Main Classroom Photo Canvas / Preview Box -->
+            <input type="file" id="classroomImageInput" accept="image/*" class="hidden">
+            <div id="dropZoneContainer" class="relative bg-slate-900 rounded-2xl border-2 border-dashed border-slate-700 hover:border-blue-500 transition min-h-[320px] flex items-center justify-center overflow-hidden shadow-inner group">
+                
+                <!-- Placeholder / Upload Prompt -->
+                <div id="imagePlaceholder" class="text-center p-8 text-slate-400 space-y-4">
+                    <div class="w-20 h-20 mx-auto rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 text-3xl shadow-md">
+                        <i class="fa-solid fa-users-viewfinder text-blue-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Classroom / Group Photo Required</h3>
+                        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">Upload a photo or take a live photo using your phone or webcam to recognize all students simultaneously.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        <button type="button" onclick="document.getElementById('classroomImageInput').click();" class="cursor-pointer bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open"></i> Upload Classroom Photo
+                        </button>
+                        <button type="button" id="openCameraBtn" onclick="startCamera();" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                            <i class="fa-solid fa-camera"></i> Click Photo (Phone / Webcam)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live / Processed Image Container -->
+                <div id="imageDisplayWrapper" class="hidden w-full flex flex-col items-center justify-center relative p-2">
+                    <img id="previewImage" src="" alt="Classroom Group Photo" class="w-full max-h-[550px] object-contain rounded-xl">
+                    <!-- Processing Spinner Overlay -->
+                    <div id="processingOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-xs rounded-xl flex flex-col items-center justify-center gap-3 text-white">
+                        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-sm font-semibold tracking-wide" id="processingStatusText">Analyzing faces with AI Vision Engine...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload / Camera Action Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-4 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="document.getElementById('classroomImageInput').click();" class="font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 underline decoration-blue-300">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Choose file
+                    </button>
+                    <span id="selectedFileName" class="text-slate-500 font-mono">No file chosen</span>
+
+                    <button type="button" id="openCameraBtn2" onclick="startCamera();" class="ml-3 font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1.5 underline decoration-emerald-300">
+                        <i class="fa-solid fa-camera"></i> Take Photo / Mobile Click
+                    </button>
+                </div>
+
+                <div>
+                    <button type="button" id="removeImageBtn" class="text-rose-500 hover:text-rose-700 font-bold hidden flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> Remove image
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detected Face Thumbnails Box (Matching Screenshot) -->
+            <div id="detectedThumbnailsBox" class="hidden border border-slate-200 rounded-xl p-4 bg-slate-50/70 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-800 font-mono-header tracking-wide">Detected Face Thumbnails</span>
+                        <span id="facesCountBadge" class="bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">0 Faces</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 italic">Hover over a thumbnail to locate face in preview</span>
+                </div>
+
+                <!-- Thumbnails Scroll Area -->
+                <div id="thumbnailsContainer" class="face-thumb-grid max-h-[160px] overflow-y-auto p-1 bg-white rounded-lg border border-slate-200 shadow-inner">
+                    <!-- Dynamic Face Thumbnails -->
+                </div>
+            </div>
+
+            <!-- Match Status Success Banner (Matching Screenshot) -->
+            <div id="statusBanner" class="hidden p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-square-check text-emerald-600 text-base"></i>
+                <span id="statusBannerText">Attendance recorded successfully! (0 users matched out of 0 faces detected)</span>
+            </div>
+
+            <!-- Submit Attendance Action (Matching Screenshot) -->
+            <div class="flex justify-end pt-2">
+                <button type="button" id="submitAttendanceBtn" disabled class="bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-lg shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-check-double"></i> Submit Attendance
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Marked Attendance Results Section (Matching Screenshot) -->
+    <div id="markedResultsSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        
+        <!-- Header & Copy Roll Numbers Button -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 font-mono-header">Marked Attendance Results</h2>
+                <p id="markedSummaryText" class="text-xs text-slate-500 mt-0.5">0 student(s) recognized and marked present</p>
+            </div>
+            <button type="button" id="copyRollsBtn" class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition">
+                <i class="fa-regular fa-copy text-blue-600"></i> Copy Roll Numbers
+            </button>
+        </div>
+
+        <!-- Roll Numbers Box (Matching Screenshot) -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <p class="text-xs font-mono text-slate-700 break-words">
+                <strong class="text-slate-900">Roll Numbers:</strong> <span id="rollNumbersString" class="text-blue-700 font-semibold">None</span>
+            </p>
+        </div>
+
+        <!-- Student Cards Grid (Exact design from user screenshot) -->
+        <div id="studentCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <!-- Dynamic Result Cards -->
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- Interactive Camera Snapshot Modal (Phone / Desktop Webcam) -->
+<div id="cameraModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-camera text-blue-600"></i>
+                <h3 class="font-bold text-sm text-slate-800">Classroom Live Camera Capture</h3>
+            </div>
+            <button type="button" id="closeCameraModal" class="text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-4 space-y-4">
+            <!-- Video Preview -->
+            <div class="relative bg-black rounded-xl overflow-hidden aspect-video flex items-center justify-center">
+                <video id="webcamVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="snapshotCanvas" class="hidden"></canvas>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center justify-between gap-3">
+                <button type="button" id="switchCameraBtn" class="text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-rotate"></i> Switch Camera (Front/Back)
+                </button>
+
+                <button type="button" id="captureSnapshotBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-camera"></i> Capture Photo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition duration-300 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMessage">Action completed!</span>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // State
+    let currentProcessedData = null;
+    let rawImageData = null;
+    let cameraStream = null;
+    let facingMode = 'environment'; // default to back camera for classroom photos on mobile
+
+    // DOM Elements
+    const classroomImageInput = document.getElementById('classroomImageInput');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const removeImageBtn = document.getElementById('removeImageBtn');
+    const imagePlaceholder = document.getElementById('imagePlaceholder');
+    const imageDisplayWrapper = document.getElementById('imageDisplayWrapper');
+    const previewImage = document.getElementById('previewImage');
+    const processingOverlay = document.getElementById('processingOverlay');
+    const processingStatusText = document.getElementById('processingStatusText');
+
+    const detectedThumbnailsBox = document.getElementById('detectedThumbnailsBox');
+    const facesCountBadge = document.getElementById('facesCountBadge');
+    const thumbnailsContainer = document.getElementById('thumbnailsContainer');
+
+    const statusBanner = document.getElementById('statusBanner');
+    const statusBannerText = document.getElementById('statusBannerText');
+    const submitAttendanceBtn = document.getElementById('submitAttendanceBtn');
+
+    const markedResultsSection = document.getElementById('markedResultsSection');
+    const markedSummaryText = document.getElementById('markedSummaryText');
+    const rollNumbersString = document.getElementById('rollNumbersString');
+    const studentCardsGrid = document.getElementById('studentCardsGrid');
+    const copyRollsBtn = document.getElementById('copyRollsBtn');
+
+    // Camera Modal Elements
+    const cameraModal = document.getElementById('cameraModal');
+    const openCameraBtn = document.getElementById('openCameraBtn');
+    const openCameraBtn2 = document.getElementById('openCameraBtn2');
+    const closeCameraModal = document.getElementById('closeCameraModal');
+    const webcamVideo = document.getElementById('webcamVideo');
+    const snapshotCanvas = document.getElementById('snapshotCanvas');
+    const captureSnapshotBtn = document.getElementById('captureSnapshotBtn');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+
+    // Date Time Badge
+    function updateDateTime() {
+        const now = new Date();
+        const badge = document.getElementById('currentDateTimeBadge');
+        if (badge) {
+            badge.innerText = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 30000);
+
+    // Toast Utility
+    function showToast(msg) {
+        const toast = document.getElementById('toastNotification');
+        const text = document.getElementById('toastMessage');
+        text.innerText = msg;
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+    }
+
+    // File Upload Handler
+    classroomImageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        selectedFileName.innerText = file.name;
+        removeImageBtn.classList.remove('hidden');
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            rawImageData = evt.target.result;
+            processImageWithAI(rawImageData);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Remove Image
+    removeImageBtn.addEventListener('click', function() {
+        resetView();
+    });
+
+    function resetView() {
+        classroomImageInput.value = '';
+        selectedFileName.innerText = 'No file chosen';
+        removeImageBtn.classList.add('hidden');
+        imagePlaceholder.classList.remove('hidden');
+        imageDisplayWrapper.classList.add('hidden');
+        previewImage.src = '';
+        detectedThumbnailsBox.classList.add('hidden');
+        statusBanner.classList.add('hidden');
+        markedResultsSection.classList.add('hidden');
+        submitAttendanceBtn.disabled = true;
+        currentProcessedData = null;
+        rawImageData = null;
+    }
+
+    // AI Attendance Processing via AJAX (Direct All-Class Scan)
+    function processImageWithAI(imageData) {
+        imagePlaceholder.classList.add('hidden');
+        imageDisplayWrapper.classList.remove('hidden');
+        previewImage.src = imageData;
+        processingOverlay.classList.remove('hidden');
+        processingStatusText.innerText = 'Analyzing faces with AI Vision Engine...';
+
+        const formData = new FormData();
+        formData.append('image_b64', imageData);
+        
+        const selectedFac = document.getElementById('filterFaculty') ? document.getElementById('filterFaculty').value : '';
+        const selectedCrs = document.getElementById('filterCourse') ? document.getElementById('filterCourse').value : '';
+        if (selectedFac) formData.append('department', selectedFac);
+        if (selectedCrs) formData.append('course', selectedCrs);
+
+        fetch("{% url 'api_process_attendance' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            processingOverlay.classList.add('hidden');
+            if (data.status === 'success') {
+                currentProcessedData = data.data;
+                renderRecognitionResults(data.data);
+            } else {
+                alert('Error processing image: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            processingOverlay.classList.add('hidden');
+            alert('Failed to connect to AI server: ' + err.message);
+        });
+    }
+
+    // Render Detection & Match Results
+    function renderRecognitionResults(data) {
+        // 1. Show Annotated image with blue boxes & labels
+        if (data.annotated_image_b64) {
+            previewImage.src = data.annotated_image_b64;
+        }
+
+        // 2. Render Detected Face Thumbnails Grid
+        detectedThumbnailsBox.classList.remove('hidden');
+        facesCountBadge.innerText = `${data.total_detected_faces} Faces`;
+        thumbnailsContainer.innerHTML = '';
+
+        data.detected_thumbnails.forEach(thumb => {
+            const item = document.createElement('div');
+            item.className = 'thumb-item group cursor-pointer';
+            item.title = `Face #${thumb.face_num}`;
+            item.innerHTML = `
+                <img src="${thumb.thumbnail_b64}" alt="Face #${thumb.face_num}" class="w-full h-full object-cover">
+                <span class="thumb-tag">#${thumb.face_num}</span>
+            `;
+            thumbnailsContainer.appendChild(item);
+        });
+
+        // 3. Status Alert Banner (Exact wording from screenshot)
+        statusBanner.classList.remove('hidden');
+        statusBannerText.innerText = `Attendance recorded successfully! (${data.total_matched_students} users matched out of ${data.total_detected_faces} faces detected)`;
+
+        // 4. Enable Submit Attendance Button
+        submitAttendanceBtn.disabled = data.total_matched_students === 0;
+
+        // 5. Render Marked Attendance Results
+        markedResultsSection.classList.remove('hidden');
+        markedSummaryText.innerText = `${data.total_matched_students} student(s) recognized and marked present`;
+        rollNumbersString.innerText = data.roll_numbers_str || 'None';
+
+        // Render Student Result Cards (Matching User Screenshot)
+        studentCardsGrid.innerHTML = '';
+
+        if (data.matched_students.length === 0) {
+            studentCardsGrid.innerHTML = `
+                <div class="col-span-full py-8 text-center text-slate-400 text-xs">
+                    No registered student faces matched in this image. Register students with face photos first.
+                </div>
+            `;
+        }
+
+        data.matched_students.forEach(student => {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3';
+            
+            // Photos container: Detected vs Registered Profile
+            card.innerHTML = `
+                <div class="flex items-center justify-around gap-2 bg-slate-50/80 p-2 rounded-lg border border-slate-100">
+                    <!-- Detected Thumbnail -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-14 h-14 rounded-lg overflow-hidden border-2 border-emerald-500 shadow-xs bg-slate-200">
+                            <img src="${student.detected_thumbnail_b64}" alt="Detected #${student.face_num}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-[10px] font-bold text-emerald-700 mt-1 font-mono">Detected #${student.face_num}</span>
+                    </div>
+
+                    <!-- Registered Profile -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-14 h-14 rounded-lg overflow-hidden border-2 border-blue-500 shadow-xs bg-slate-200">
+                            <img src="${student.profile_photo_url || student.detected_thumbnail_b64}" alt="Registered Profile" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-[10px] font-bold text-blue-700 mt-1 font-mono">Registered Profile</span>
+                    </div>
+                </div>
+
+                <!-- Student Info Details -->
+                <div class="space-y-1 text-left">
+                    <h4 class="text-xs font-bold text-slate-800 truncate" title="${student.name}">${student.name}</h4>
+                    <p class="text-[11px] text-slate-500 font-mono truncate" title="${student.email}">${student.email}</p>
+                    <p class="text-xs font-semibold text-slate-700">Roll: <span class="text-slate-900">${student.roll_no}</span></p>
+                </div>
+
+                <!-- Match Confidence Footer -->
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="text-[11px] text-slate-500 font-medium">Match Confidence:</span>
+                    <span class="font-bold text-emerald-600 font-mono">${student.confidence}%</span>
+                </div>
+            `;
+            studentCardsGrid.appendChild(card);
+        });
+
+        // Smooth scroll to marked results
+        markedResultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Copy Roll Numbers to Clipboard
+    copyRollsBtn.addEventListener('click', function() {
+        const text = rollNumbersString.innerText;
+        if (!text || text === 'None') return;
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Roll numbers copied to clipboard!');
+        }).catch(() => {
+            // Fallback
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast('Roll numbers copied to clipboard!');
+        });
+    });
+
+    // Submit Attendance to Database
+    submitAttendanceBtn.addEventListener('click', function() {
+        if (!currentProcessedData || currentProcessedData.matched_students.length === 0) return;
+
+        submitAttendanceBtn.disabled = true;
+        submitAttendanceBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
+
+        const firstStudent = currentProcessedData.matched_students[0] || {};
+        const subjectVal = document.getElementById('inputSubject') ? document.getElementById('inputSubject').value.trim() : '';
+        const facultyVal = document.getElementById('inputFaculty') ? document.getElementById('inputFaculty').value.trim() : '';
+        
+        const payload = {
+            faculty_name: facultyVal || 'Prof. Admin',
+            department_name: firstStudent.department || 'FoS',
+            course_name: subjectVal || firstStudent.course || 'General Class',
+            semester: firstStudent.semester || 'All Semesters',
+            division: firstStudent.division || 'All Divisions',
+            subject: subjectVal || 'Class Attendance',
+            total_detected_faces: currentProcessedData.total_detected_faces,
+            total_matched_students: currentProcessedData.total_matched_students,
+            matched_students: currentProcessedData.matched_students,
+            annotated_image_b64: currentProcessedData.annotated_image_b64
+        };
+
+        fetch("{% url 'api_save_attendance' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(res => {
+            submitAttendanceBtn.innerHTML = `<i class="fa-solid fa-check"></i> Saved!`;
+            if (res.status === 'success') {
+                showToast(res.message);
+                setTimeout(() => {
+                    window.location.href = `/session/${res.session_id}/`;
+                }, 1200);
+            } else {
+                alert('Error saving attendance: ' + res.message);
+                submitAttendanceBtn.disabled = false;
+                submitAttendanceBtn.innerHTML = `<i class="fa-solid fa-check-double"></i> Submit Attendance`;
+            }
+        })
+        .catch(err => {
+            alert('Failed to save: ' + err.message);
+            submitAttendanceBtn.disabled = false;
+            submitAttendanceBtn.innerHTML = `<i class="fa-solid fa-check-double"></i> Submit Attendance`;
+        });
+    });
+
+    // CAMERA MODAL (Live Webcam & Phone Camera Click)
+    function startCamera() {
+        cameraModal.classList.remove('hidden');
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+            video: {
+                facingMode: facingMode,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            cameraStream = stream;
+            webcamVideo.srcObject = stream;
+        })
+        .catch(err => {
+            // Fallback simple video constraint
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(stream => {
+                cameraStream = stream;
+                webcamVideo.srcObject = stream;
+            })
+            .catch(e => {
+                alert('Camera access error: ' + e.message + '. Please allow camera permissions.');
+                cameraModal.classList.add('hidden');
+            });
+        });
+    }
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
+        }
+        cameraModal.classList.add('hidden');
+    }
+
+    openCameraBtn.addEventListener('click', startCamera);
+    openCameraBtn2.addEventListener('click', startCamera);
+    closeCameraModal.addEventListener('click', stopCamera);
+
+    switchCameraBtn.addEventListener('click', function() {
+        facingMode = (facingMode === 'user') ? 'environment' : 'user';
+        startCamera();
+    });
+
+    captureSnapshotBtn.addEventListener('click', function() {
+        if (!webcamVideo.videoWidth) return;
+
+        snapshotCanvas.width = webcamVideo.videoWidth;
+        snapshotCanvas.height = webcamVideo.videoHeight;
+        const ctx = snapshotCanvas.getContext('2d');
+        ctx.drawImage(webcamVideo, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+
+        const capturedDataUrl = snapshotCanvas.toDataURL('image/jpeg', 0.92);
+        stopCamera();
+
+        selectedFileName.innerText = `Camera_Capture_${Date.now()}.jpg`;
+        removeImageBtn.classList.remove('hidden');
+        rawImageData = capturedDataUrl;
+
+        processImageWithAI(capturedDataUrl);
+    });
+
+</script>
+{% endblock %}
