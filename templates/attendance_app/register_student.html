@@ -126,9 +126,9 @@
                     </span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                    <!-- Faculty (1) -->
+                    <!-- Faculty -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">1. Faculty</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Faculty</label>
                         <input list="facultiesList" id="regFacultyInput" name="faculty" placeholder="e.g. FoS" value="FoS" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
                         <datalist id="facultiesList">
                             {% for dept in departments %}
@@ -143,9 +143,9 @@
                         </datalist>
                     </div>
 
-                    <!-- Department (2) -->
+                    <!-- Department -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">2. Department</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Department</label>
                         <input list="departmentsList" id="regDeptInput" name="department" placeholder="e.g. Computer Science" value="Computer Science" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
                         <datalist id="departmentsList">
                             <option value="Computer Science">
@@ -164,9 +164,9 @@
                         </datalist>
                     </div>
 
-                    <!-- Course / Degree (3) -->
+                    <!-- Course / Degree -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">3. Course</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Course</label>
                         <input list="coursesList" id="regCourseInput" name="course" placeholder="e.g. MCA, BCA" value="MCA" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
                         <datalist id="coursesList">
                             {% for c in courses %}
@@ -183,9 +183,9 @@
                         </datalist>
                     </div>
 
-                    <!-- Semester (4) -->
+                    <!-- Semester -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">4. Semester</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Semester</label>
                         <input list="semestersList" name="semester" placeholder="e.g. Semester 3" value="Semester 3" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
                         <datalist id="semestersList">
                             {% for sem in semesters %}
@@ -194,9 +194,9 @@
                         </datalist>
                     </div>
 
-                    <!-- Division (5) -->
+                    <!-- Division -->
                     <div class="col-span-2 sm:col-span-1">
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">5. Division</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Division</label>
                         <input list="divisionsList" name="division" placeholder="e.g. 22" value="22" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
                         <datalist id="divisionsList">
                             {% for div in divisions %}
